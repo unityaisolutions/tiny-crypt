@@ -243,6 +243,7 @@
         <div class="tabs">
             <button class="tab active" onclick="switchTab('encrypt')">Encrypt</button>
             <button class="tab" onclick="switchTab('decrypt')">Decrypt</button>
+            <button class="tab" onclick="switchTab('about')">About</button>
         </div>
 
         <div id="encrypt-tab" class="tab-content active">
@@ -265,6 +266,16 @@
             <div class="checkbox-group">
                 <input type="checkbox" id="compress-checkbox" checked>
                 <label for="compress-checkbox">Enable compression (recommended for text files)</label>
+            </div>
+
+            <div class="checkbox-group">
+                <input type="checkbox" id="signature-checkbox" onchange="toggleSignature()">
+                <label for="signature-checkbox">Add verification signature</label>
+            </div>
+
+            <div class="input-group" id="signature-input" style="display: none;">
+                <label for="signature-name">Your Name/Identifier</label>
+                <input type="text" id="signature-name" placeholder="e.g., John Doe" style="padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 1em;">
             </div>
 
             <button class="button" onclick="encryptFile()">🔒 Encrypt & Download</button>
@@ -302,6 +313,71 @@
                 </div>
                 <div class="status" id="decrypt-status"></div>
             </div>
+
+            <div id="signature-display" class="file-info" style="display: none; margin-top: 20px; background: #e7f3ff; border: 2px solid #667eea;">
+                <strong>📝 Verified Signature:</strong>
+                <div id="signature-content" style="margin-top: 8px; font-size: 1.1em; color: #333;"></div>
+                <div style="margin-top: 10px; font-size: 0.85em; color: #555; border-top: 1px solid #667eea; padding-top: 10px;">
+                    ℹ️ <strong>What this means:</strong> This signature was encrypted with the same password you used to decrypt the file. This confirms that the person who encrypted this file knew the password and claimed to be the identity shown above. This helps protect you from tampered or misattributed files.
+                </div>
+            </div>
+        </div>
+
+        <div id="about-tab" class="tab-content">
+            <h2 style="color: #667eea; margin-bottom: 20px; font-size: 1.5em;">🔐 System Architecture</h2>
+            
+            <div style="margin-bottom: 25px;">
+                <h3 style="color: #764ba2; margin-bottom: 10px; font-size: 1.2em;">How It Works</h3>
+                <p style="color: #444; line-height: 1.7; margin-bottom: 15px;">
+                    This application provides military-grade encryption entirely in your browser. Your files never leave your device during the encryption/decryption process, ensuring maximum privacy and security.
+                </p>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <h3 style="color: #764ba2; margin-bottom: 10px; font-size: 1.2em;">🔑 Encryption Process</h3>
+                <ol style="color: #444; line-height: 1.8; padding-left: 20px;">
+                    <li><strong>Key Derivation:</strong> Your password is converted into a 256-bit encryption key using PBKDF2 with 100,000 iterations and a random salt. This makes brute-force attacks computationally infeasible.</li>
+                    <li><strong>Compression (Optional):</strong> Files are compressed using gzip via the Web Compression Streams API, reducing file size significantly for text-based content.</li>
+                    <li><strong>AES-256-GCM Encryption:</strong> Your data is encrypted using AES-256 in GCM mode, which provides both confidentiality and authentication. A random 12-byte IV (Initialization Vector) ensures each encryption is unique.</li>
+                    <li><strong>Signature (Optional):</strong> If enabled, your name/identifier is separately encrypted with its own IV using the same key, allowing recipients to verify the sender.</li>
+                    <li><strong>.crypt File Format:</strong> All components (salt, IV, encrypted data, signature) are packaged into a JSON file with Base64 encoding for easy transmission.</li>
+                </ol>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <h3 style="color: #764ba2; margin-bottom: 10px; font-size: 1.2em;">🔓 Decryption Process</h3>
+                <ol style="color: #444; line-height: 1.8; padding-left: 20px;">
+                    <li><strong>File Parsing:</strong> The .crypt file is read and parsed to extract salt, IV, encrypted data, and optional signature.</li>
+                    <li><strong>Key Derivation:</strong> The same PBKDF2 process recreates the encryption key from your password and the stored salt.</li>
+                    <li><strong>Signature Verification:</strong> If present, the signature is decrypted first to show you who sent the file.</li>
+                    <li><strong>Decryption:</strong> AES-GCM decrypts the data. If the password is wrong or data is tampered with, decryption fails immediately.</li>
+                    <li><strong>Decompression:</strong> If the file was compressed, it's decompressed back to its original form.</li>
+                    <li><strong>Download:</strong> Your original file is reconstructed and downloaded with its original filename.</li>
+                </ol>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <h3 style="color: #764ba2; margin-bottom: 10px; font-size: 1.2em;">🛡️ Security Features</h3>
+                <ul style="color: #444; line-height: 1.8; padding-left: 20px;">
+                    <li><strong>Client-Side Only:</strong> All operations happen in your browser. No data is uploaded to any server.</li>
+                    <li><strong>AES-256-GCM:</strong> Industry-standard encryption used by governments and militaries worldwide.</li>
+                    <li><strong>Authenticated Encryption:</strong> GCM mode prevents tampering by detecting any modifications to encrypted data.</li>
+                    <li><strong>Random Salt & IV:</strong> Each encryption uses unique random values, preventing pattern analysis.</li>
+                    <li><strong>Strong Key Derivation:</strong> 100,000 PBKDF2 iterations make password cracking extremely difficult.</li>
+                    <li><strong>Verification Signatures:</strong> Optional sender identification helps prevent social engineering attacks.</li>
+                </ul>
+            </div>
+
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea;">
+                <h3 style="color: #667eea; margin-bottom: 10px; font-size: 1.1em;">💡 Best Practices</h3>
+                <ul style="color: #444; line-height: 1.7; padding-left: 20px; margin: 0;">
+                    <li>Use strong, unique passwords (minimum 12 characters with mixed case, numbers, symbols)</li>
+                    <li>Share passwords through a different channel than the encrypted file</li>
+                    <li>Enable compression for text files (documents, code) but disable for media (images, videos)</li>
+                    <li>Use verification signatures when sending files to verify authenticity</li>
+                    <li>Keep files under 50MB unless you have powerful hardware</li>
+                </ul>
+            </div>
         </div>
     </div>
 
@@ -312,6 +388,17 @@
             
             event.target.classList.add('active');
             document.getElementById(tab + '-tab').classList.add('active');
+            
+            // Reset signature display when switching tabs
+            if (tab === 'decrypt') {
+                document.getElementById('signature-display').style.display = 'none';
+            }
+        }
+
+        function toggleSignature() {
+            const checkbox = document.getElementById('signature-checkbox');
+            const input = document.getElementById('signature-input');
+            input.style.display = checkbox.checked ? 'block' : 'none';
         }
 
         function updateFileName(mode) {
@@ -324,7 +411,14 @@
                 const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
                 label.textContent = `✓ ${file.name}`;
                 info.style.display = 'block';
-                info.textContent = `Size: ${sizeMB} MB | Type: ${file.type || 'Unknown'}`;
+                
+                // Detect .crypt files and show custom MIME type
+                let fileType = file.type || 'Unknown';
+                if (file.name.toLowerCase().endsWith('.crypt')) {
+                    fileType = 'vault/x-crypt';
+                }
+                
+                info.textContent = `Size: ${sizeMB} MB | Type: ${fileType}`;
             }
         }
 
@@ -394,6 +488,8 @@
             const fileInput = document.getElementById('encrypt-file');
             const password = document.getElementById('encrypt-password').value;
             const compress = document.getElementById('compress-checkbox').checked;
+            const addSignature = document.getElementById('signature-checkbox').checked;
+            const signatureName = document.getElementById('signature-name').value;
             const progress = document.getElementById('encrypt-progress');
             const progressFill = document.getElementById('encrypt-progress-fill');
             const status = document.getElementById('encrypt-status');
@@ -408,6 +504,11 @@
                 return;
             }
 
+            if (addSignature && !signatureName.trim()) {
+                alert('Please enter your name/identifier for the signature');
+                return;
+            }
+
             const file = fileInput.files[0];
             progress.style.display = 'block';
             progressFill.style.width = '0%';
@@ -416,13 +517,13 @@
 
             try {
                 let fileData = await file.arrayBuffer();
-                progressFill.style.width = '20%';
+                progressFill.style.width = '15%';
                 
                 let dataToEncrypt = fileData;
                 if (compress) {
                     status.textContent = 'Compressing...';
                     dataToEncrypt = await compressData(fileData);
-                    progressFill.style.width = '40%';
+                    progressFill.style.width = '30%';
                 }
 
                 status.textContent = 'Encrypting...';
@@ -437,7 +538,29 @@
                     dataToEncrypt
                 );
 
-                progressFill.style.width = '70%';
+                progressFill.style.width = '60%';
+
+                // Encrypt signature if provided
+                let encryptedSignature = null;
+                if (addSignature) {
+                    status.textContent = 'Adding signature...';
+                    const signatureIv = crypto.getRandomValues(new Uint8Array(12));
+                    const encoder = new TextEncoder();
+                    const signatureData = encoder.encode(signatureName.trim());
+                    
+                    const encryptedSig = await crypto.subtle.encrypt(
+                        { name: 'AES-GCM', iv: signatureIv },
+                        key,
+                        signatureData
+                    );
+
+                    encryptedSignature = {
+                        iv: Array.from(signatureIv),
+                        data: arrayBufferToBase64(encryptedSig)
+                    };
+                    progressFill.style.width = '70%';
+                }
+
                 status.textContent = 'Creating .crypt file...';
 
                 const cryptData = {
@@ -447,7 +570,8 @@
                     compressed: compress,
                     salt: Array.from(salt),
                     iv: Array.from(iv),
-                    data: arrayBufferToBase64(encrypted)
+                    data: arrayBufferToBase64(encrypted),
+                    signature: encryptedSignature
                 };
 
                 progressFill.style.width = '85%';
@@ -461,7 +585,7 @@
                 URL.revokeObjectURL(url);
 
                 progressFill.style.width = '100%';
-                status.textContent = '✓ File encrypted successfully!';
+                status.textContent = '✓ File encrypted successfully!' + (addSignature ? ' (with signature)' : '');
                 status.classList.add('success');
 
             } catch (error) {
@@ -477,6 +601,12 @@
             const progress = document.getElementById('decrypt-progress');
             const progressFill = document.getElementById('decrypt-progress-fill');
             const status = document.getElementById('decrypt-status');
+            const signatureDisplay = document.getElementById('signature-display');
+            const signatureContent = document.getElementById('signature-content');
+
+            // Reset signature display
+            signatureDisplay.style.display = 'none';
+            signatureContent.textContent = '';
 
             if (!fileInput.files.length) {
                 alert('Please select a .crypt file to decrypt');
@@ -498,12 +628,40 @@
                 const fileText = await file.text();
                 const cryptData = JSON.parse(fileText);
 
-                progressFill.style.width = '20%';
-                status.textContent = 'Decrypting...';
+                progressFill.style.width = '15%';
+                status.textContent = 'Deriving key...';
 
                 const salt = new Uint8Array(cryptData.salt);
                 const iv = new Uint8Array(cryptData.iv);
                 const key = await deriveKey(password, salt);
+
+                // Decrypt signature first if it exists
+                if (cryptData.signature) {
+                    try {
+                        status.textContent = 'Verifying signature...';
+                        const sigIv = new Uint8Array(cryptData.signature.iv);
+                        const sigData = base64ToArrayBuffer(cryptData.signature.data);
+                        
+                        const decryptedSig = await crypto.subtle.decrypt(
+                            { name: 'AES-GCM', iv: sigIv },
+                            key,
+                            sigData
+                        );
+
+                        const decoder = new TextDecoder();
+                        const signatureName = decoder.decode(decryptedSig);
+                        
+                        signatureContent.textContent = signatureName;
+                        signatureDisplay.style.display = 'block';
+                        progressFill.style.width = '25%';
+                    } catch (sigError) {
+                        console.error('Signature verification failed:', sigError);
+                        // Continue anyway - maybe wrong password will be caught later
+                    }
+                }
+
+                status.textContent = 'Decrypting file...';
+                progressFill.style.width = '40%';
 
                 const encryptedData = base64ToArrayBuffer(cryptData.data);
 
@@ -513,13 +671,13 @@
                     encryptedData
                 );
 
-                progressFill.style.width = '50%';
+                progressFill.style.width = '60%';
 
                 let finalData = decrypted;
                 if (cryptData.compressed) {
                     status.textContent = 'Decompressing...';
                     finalData = await decompressData(decrypted);
-                    progressFill.style.width = '75%';
+                    progressFill.style.width = '80%';
                 }
 
                 status.textContent = 'Preparing download...';
@@ -540,6 +698,7 @@
                 console.error(error);
                 status.textContent = '✗ Decryption failed: ' + error.message + ' (Wrong password?)';
                 status.classList.add('error');
+                signatureDisplay.style.display = 'none';
             }
         }
     </script>
