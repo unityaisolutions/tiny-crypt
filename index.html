@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AES-256 File Encryptor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 20px;
+            color: #856404;
+            font-size: 0.9em;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            background: #e0e0e0;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        input[type="password"], input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 12px;
+            background: #f0f0f0;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-input-label:hover {
+            background: #e8e8e8;
+            border-color: #667eea;
+        }
+
+        input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .progress {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+            width: 0%;
+        }
+
+        .status {
+            margin-top: 10px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .success {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .error {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        .file-info {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .checkbox-group {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            font-weight: normal;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 AES-256 File Encryptor</h1>
+        <p class="subtitle">Secure client-side encryption with compression</p>
+        
+        <div class="warning">
+            ⚠️ <strong>Recommended:</strong> Only encrypt files up to 50MB unless you have good hardware. Large files may slow down your browser.
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('encrypt')">Encrypt</button>
+            <button class="tab" onclick="switchTab('decrypt')">Decrypt</button>
+        </div>
+
+        <div id="encrypt-tab" class="tab-content active">
+            <div class="input-group">
+                <label for="encrypt-file">Select File to Encrypt</label>
+                <div class="file-input-wrapper">
+                    <label for="encrypt-file" class="file-input-label" id="encrypt-file-label">
+                        📁 Click to select file
+                    </label>
+                    <input type="file" id="encrypt-file" onchange="updateFileName('encrypt')">
+                </div>
+                <div id="encrypt-file-info" class="file-info" style="display: none;"></div>
+            </div>
+
+            <div class="input-group">
+                <label for="encrypt-password">Encryption Password</label>
+                <input type="password" id="encrypt-password" placeholder="Enter a strong password">
+            </div>
+
+            <div class="checkbox-group">
+                <input type="checkbox" id="compress-checkbox" checked>
+                <label for="compress-checkbox">Enable compression (recommended for text files)</label>
+            </div>
+
+            <button class="button" onclick="encryptFile()">🔒 Encrypt & Download</button>
+
+            <div class="progress" id="encrypt-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="encrypt-progress-fill"></div>
+                </div>
+                <div class="status" id="encrypt-status"></div>
+            </div>
+        </div>
+
+        <div id="decrypt-tab" class="tab-content">
+            <div class="input-group">
+                <label for="decrypt-file">Select .crypt File to Decrypt</label>
+                <div class="file-input-wrapper">
+                    <label for="decrypt-file" class="file-input-label" id="decrypt-file-label">
+                        📁 Click to select .crypt file
+                    </label>
+                    <input type="file" id="decrypt-file" accept=".crypt" onchange="updateFileName('decrypt')">
+                </div>
+                <div id="decrypt-file-info" class="file-info" style="display: none;"></div>
+            </div>
+
+            <div class="input-group">
+                <label for="decrypt-password">Decryption Password</label>
+                <input type="password" id="decrypt-password" placeholder="Enter your password">
+            </div>
+
+            <button class="button" onclick="decryptFile()">🔓 Decrypt & Download</button>
+
+            <div class="progress" id="decrypt-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="decrypt-progress-fill"></div>
+                </div>
+                <div class="status" id="decrypt-status"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tab + '-tab').classList.add('active');
+        }
+
+        function updateFileName(mode) {
+            const input = document.getElementById(mode + '-file');
+            const label = document.getElementById(mode + '-file-label');
+            const info = document.getElementById(mode + '-file-info');
+            
+            if (input.files.length > 0) {
+                const file = input.files[0];
+                const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                label.textContent = `✓ ${file.name}`;
+                info.style.display = 'block';
+                info.textContent = `Size: ${sizeMB} MB | Type: ${file.type || 'Unknown'}`;
+            }
+        }
+
+        async function deriveKey(password, salt) {
+            const encoder = new TextEncoder();
+            const passwordBuffer = encoder.encode(password);
+            
+            const importedKey = await crypto.subtle.importKey(
+                'raw',
+                passwordBuffer,
+                'PBKDF2',
+                false,
+                ['deriveBits', 'deriveKey']
+            );
+            
+            return await crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt: salt,
+                    iterations: 100000,
+                    hash: 'SHA-256'
+                },
+                importedKey,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['encrypt', 'decrypt']
+            );
+        }
+
+        async function compressData(data) {
+            const stream = new Blob([data]).stream();
+            const compressedStream = stream.pipeThrough(new CompressionStream('gzip'));
+            const compressedBlob = await new Response(compressedStream).blob();
+            return await compressedBlob.arrayBuffer();
+        }
+
+        async function decompressData(data) {
+            const stream = new Blob([data]).stream();
+            const decompressedStream = stream.pipeThrough(new DecompressionStream('gzip'));
+            const decompressedBlob = await new Response(decompressedStream).blob();
+            return await decompressedBlob.arrayBuffer();
+        }
+
+        function arrayBufferToBase64(buffer) {
+            const bytes = new Uint8Array(buffer);
+            const chunkSize = 0x8000;
+            const chunks = [];
+            
+            for (let i = 0; i < bytes.length; i += chunkSize) {
+                const chunk = bytes.subarray(i, i + chunkSize);
+                chunks.push(String.fromCharCode.apply(null, chunk));
+            }
+            
+            return btoa(chunks.join(''));
+        }
+
+        function base64ToArrayBuffer(base64) {
+            const binaryString = atob(base64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        async function encryptFile() {
+            const fileInput = document.getElementById('encrypt-file');
+            const password = document.getElementById('encrypt-password').value;
+            const compress = document.getElementById('compress-checkbox').checked;
+            const progress = document.getElementById('encrypt-progress');
+            const progressFill = document.getElementById('encrypt-progress-fill');
+            const status = document.getElementById('encrypt-status');
+
+            if (!fileInput.files.length) {
+                alert('Please select a file to encrypt');
+                return;
+            }
+
+            if (!password) {
+                alert('Please enter a password');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            progress.style.display = 'block';
+            progressFill.style.width = '0%';
+            status.textContent = 'Reading file...';
+            status.className = 'status';
+
+            try {
+                let fileData = await file.arrayBuffer();
+                progressFill.style.width = '20%';
+                
+                let dataToEncrypt = fileData;
+                if (compress) {
+                    status.textContent = 'Compressing...';
+                    dataToEncrypt = await compressData(fileData);
+                    progressFill.style.width = '40%';
+                }
+
+                status.textContent = 'Encrypting...';
+
+                const salt = crypto.getRandomValues(new Uint8Array(16));
+                const iv = crypto.getRandomValues(new Uint8Array(12));
+                const key = await deriveKey(password, salt);
+
+                const encrypted = await crypto.subtle.encrypt(
+                    { name: 'AES-GCM', iv: iv },
+                    key,
+                    dataToEncrypt
+                );
+
+                progressFill.style.width = '70%';
+                status.textContent = 'Creating .crypt file...';
+
+                const cryptData = {
+                    version: '1.0',
+                    filename: file.name,
+                    originalSize: file.size,
+                    compressed: compress,
+                    salt: Array.from(salt),
+                    iv: Array.from(iv),
+                    data: arrayBufferToBase64(encrypted)
+                };
+
+                progressFill.style.width = '85%';
+
+                const blob = new Blob([JSON.stringify(cryptData)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = file.name + '.crypt';
+                a.click();
+                URL.revokeObjectURL(url);
+
+                progressFill.style.width = '100%';
+                status.textContent = '✓ File encrypted successfully!';
+                status.classList.add('success');
+
+            } catch (error) {
+                console.error(error);
+                status.textContent = '✗ Encryption failed: ' + error.message;
+                status.classList.add('error');
+            }
+        }
+
+        async function decryptFile() {
+            const fileInput = document.getElementById('decrypt-file');
+            const password = document.getElementById('decrypt-password').value;
+            const progress = document.getElementById('decrypt-progress');
+            const progressFill = document.getElementById('decrypt-progress-fill');
+            const status = document.getElementById('decrypt-status');
+
+            if (!fileInput.files.length) {
+                alert('Please select a .crypt file to decrypt');
+                return;
+            }
+
+            if (!password) {
+                alert('Please enter the password');
+                return;
+            }
+
+            progress.style.display = 'block';
+            progressFill.style.width = '0%';
+            status.textContent = 'Reading encrypted file...';
+            status.className = 'status';
+
+            try {
+                const file = fileInput.files[0];
+                const fileText = await file.text();
+                const cryptData = JSON.parse(fileText);
+
+                progressFill.style.width = '20%';
+                status.textContent = 'Decrypting...';
+
+                const salt = new Uint8Array(cryptData.salt);
+                const iv = new Uint8Array(cryptData.iv);
+                const key = await deriveKey(password, salt);
+
+                const encryptedData = base64ToArrayBuffer(cryptData.data);
+
+                const decrypted = await crypto.subtle.decrypt(
+                    { name: 'AES-GCM', iv: iv },
+                    key,
+                    encryptedData
+                );
+
+                progressFill.style.width = '50%';
+
+                let finalData = decrypted;
+                if (cryptData.compressed) {
+                    status.textContent = 'Decompressing...';
+                    finalData = await decompressData(decrypted);
+                    progressFill.style.width = '75%';
+                }
+
+                status.textContent = 'Preparing download...';
+
+                const blob = new Blob([finalData]);
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = cryptData.filename;
+                a.click();
+                URL.revokeObjectURL(url);
+
+                progressFill.style.width = '100%';
+                status.textContent = '✓ File decrypted successfully!';
+                status.classList.add('success');
+
+            } catch (error) {
+                console.error(error);
+                status.textContent = '✗ Decryption failed: ' + error.message + ' (Wrong password?)';
+                status.classList.add('error');
+            }
+        }
+    </script>
+</body>
+</html>
